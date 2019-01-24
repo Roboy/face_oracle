@@ -11,17 +11,12 @@ from scientio.ontology.node import Node
 
 async def hello():
     async with websockets.connect(
-            'ws://localhost:8765') as websocket:
+            'ws://127.0.0.1:8765') as websocket:
         encoding = np.zeros(128)#np.random.rand(128)
+        encoding[0]=10
         await websocket.send(pickle.dumps(encoding))#.encode())#struct.pack('%sd' % len(encoding), *encoding))
-        idx = await websocket.recv()
-        print("< id: {}".format(pickle.loads(idx)))
-
-sess = Session(
-    ontology=onto,
-    neo4j_address="bolt://localhost:7687",
-    neo4j_username="neo4j",
-    neo4j_password="test")
+        name = await websocket.recv()
+        print("< name: {}".format(name))
 
 
 asyncio.get_event_loop().run_until_complete(hello())
