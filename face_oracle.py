@@ -35,15 +35,18 @@ class FaceOracle:
     async def recognize(self, websocket, path):
         b_face_encoding = await websocket.recv()
         #print(b_face_encoding)
-        face_encoding = pickle.loads(b_face_encoding)#.decode()
+        face_encoding = pickle.loads(b_face_encodings, encoding='bytes')#.decode()
         #face_encoding = struct.unpack('%sd' % 128, b_face_encoding)
         ids, known_faces = self.get_known_faces()
-        idx = FaceRec.match_face(face_encoding, known_faces)
-        if idx is not None:
-            node = sess.retrieve(node_id=int(ids[idx].decode('utf-8')))[0]
-            name = node.get_name()
-            await websocket.send(name)
-        await websocket.send("stranger")
+        names = []
+        for face_encoding in face_encodings:
+            idx = FaceRec.match_face(face_encoding, known_faces)
+            if idx is not None:
+                node = sess.retrieve(node_id=int(ids[idx].decode('utf-8')))[0]
+                names.append(node.get_name())
+            else:
+                names.append("stranger")
+        await websocket.send(pickle.dumps(names, protocol=2))        
 
 if __name__ == '__main__':
     global sess
