@@ -4,10 +4,6 @@ import pickle
 import random
 import numpy as np
 
-from scientio.ontology.ontology import Ontology
-from scientio.session import Session
-from scientio.ontology.node import Node
-
 
 async def hello():
     async with websockets.connect(

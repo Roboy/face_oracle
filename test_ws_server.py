@@ -21,7 +21,7 @@ async def hello(websocket, path):
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 ssl_context.load_cert_chain('test_localhost.pem')
 
-start_server = websockets.serve(hello, 'localhost', 8765, ssl=ssl_context)
+start_server = websockets.serve(hello, '0.0.0.0', 8765, ssl=ssl_context)
 
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
