@@ -49,6 +49,7 @@ def zed_pcl_callback(data):
     point_cloud = ros_numpy.numpify(data)
 
 def zed_frame_callback(img):
+
     face_locations = []
     face_encodings = []
     face_names = []
@@ -66,14 +67,15 @@ def zed_frame_callback(img):
 
 
     # Only process every other frame of video to save time
-    if process_this_frame:
+    # pdb.set_trace()
+    if img.header.seq%3 == 0:
         # Find all the faces and face encodings in the current frame of video
         face_locations = face_recognition.face_locations(rgb_small_frame)
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
         face_names = []
         if len(face_encodings) > 0:
-            ws = websocket.create_connection("wss://localhost:8765", sslopt=sslopt)
-            pickled_encodings = pickle.dumps(face_encodings[0], protocol=2)
+            ws = websocket.create_connection("wss://bot.roboy.org:8765", sslopt=sslopt)
+            pickled_encodings = pickle.dumps(face_encodings, protocol=2)
             ws.send_binary(pickled_encodings)
             # import pdb; pdb.set_trace()
             pickled_names = ws.recv()
@@ -130,6 +132,7 @@ def zed_frame_callback(img):
 
 sslopt = dict(cert_reqs=ssl.CERT_REQUIRED)
 sslopt['ca_certs']='test_localhost.pem'
+sslopt["check_hostname"] = False
 global point_cloud
 point_cloud = None
 
