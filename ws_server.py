@@ -1,3 +1,4 @@
+import os
 import asyncio
 import websockets
 import pyroboy
@@ -41,7 +42,7 @@ class FaceOracle:
         names = []
         confidences = []
         for face_encoding in face_encodings:
-            idx, confidence = pyroboy.match_face(face_encoding, known_faces)
+            idx, confidence = FaceRec.match_face(face_encoding, known_faces)
             if idx is not None:
                 node = sess.retrieve(node_id=int(ids[idx].decode('utf-8')))[0]
                 names.append(node.get_name())
@@ -56,9 +57,9 @@ if __name__ == '__main__':
     onto = Ontology(path_to_yaml="ravestate_ontology.yml")
     sess = Session(
         ontology=onto,
-        neo4j_address="",
-        neo4j_username="",
-        neo4j_password="")
+        neo4j_address=os.environ['NEO4J_ADDRESS'],
+        neo4j_username=os.environ['NEO4J_USERNAME'],
+        neo4j_password=os.environ['NEO4J_PASSWORD'])
     #res = sess.retrieve(node_id=7)
     #pdb.set_trace()
     oracle = FaceOracle()
