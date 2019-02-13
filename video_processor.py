@@ -6,7 +6,8 @@ import pickle
 import rospy
 from rospy.numpy_msg import numpy_msg
 from sensor_msgs.msg import CompressedImage, PointCloud2
-from roboy_cognition_msgs.msg import FaceCoordinates
+from roboy_cognition_msgs.srv import RecognizeFaces, RecognizeFacesRequest
+from roboy_cognition_msgs.msg import FacialFeatures, RecognizedFaces
 from roboy_control_msgs.msg import Strings
 import numpy as np
 import websocket
@@ -27,6 +28,7 @@ def zed_frame_callback(img):
     face_locations = []
     face_encodings = []
     face_names = []
+    face_confidences = []
     process_this_frame = True
     # Grab a single frame of video
     # ret, frame = video_capture.read()
@@ -47,15 +49,18 @@ def zed_frame_callback(img):
         face_locations = face_recognition.face_locations(rgb_small_frame)
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
         face_names = []
+        req = RecognizeFacesRequest()
+        req.encodings = [FacialFeatures(ff=encoding) for encoding in face_encodings]
         if len(face_encodings) > 0:
-            resp = publish_names_srv(face_encodings)
+            resp = publish_names_srv(req)
             face_names = resp.names
+            face_confidences = resp.confidence
 
     process_this_frame = not process_this_frame
 
     scaled_face_locations = []
     # Display the results
-    for (top, right, bottom, left), name in zip(face_locations, face_names):
+    for (top, right, bottom, left), name, confidence in zip(face_locations, face_names, face_confidences):
         # Scale back up face locations since the frame we detected in was scaled to 1/4 size
         top *= 4
         right *= 4
@@ -73,7 +78,7 @@ def zed_frame_callback(img):
         # Draw a label with a name below the face
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
-        cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+        cv2.putText(frame, "%s %d"%(name, confidence), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
     # Display the resulting image
     cv2.imshow('Video', frame)
