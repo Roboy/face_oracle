@@ -36,7 +36,7 @@ class FaceOracle:
     async def recognize(self, websocket, path):
         b_face_encodings = await websocket.recv()
         #print(b_face_encoding)
-        face_encodings = pickle.loads(b_face_encodings, encoding='bytes')#.decode()
+        face_encodings, signature = pickle.loads(b_face_encodings, encoding='bytes')#.decode()
         #face_encoding = struct.unpack('%sd' % 128, b_face_encoding)
         ids, known_faces = self.get_known_faces()
         names = []
