@@ -39,13 +39,16 @@ class FaceOracle:
     async def recognize(self, websocket, path):
         b_face_encodings = await websocket.recv()
         #print(b_face_encoding)
-        face_encodings, signature = pickle.loads(b_face_encodings, encoding='bytes')#.decode()
+        face_encodings, h, signature = pickle.loads(b_face_encodings, encoding='bytes')#.decode()
         
         # check signature
-        to_hash = bytes(face_encodings)#array.array('B', encodings).tostring()
-        h = hashlib.sha256(to_hash).digest()
+        #to_hash = bytearray(face_encodings)#array.array('B', encodings).tostring()
+        #h = hashlib.sha256(to_hash).digest()
         vk = VerifyingKey.from_pem(open("pubkey.pem").read())
-        vk.verify_digest(signature, h)
+        try: 
+            vk.verify_digest(signature, h)
+        except:
+            print("Some dirty business here. Could not verify signature")
 
         #face_encoding = struct.unpack('%sd' % 128, b_face_encoding)
         ids, known_faces = self.get_known_faces()
