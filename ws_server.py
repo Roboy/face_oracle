@@ -42,7 +42,7 @@ class FaceOracle:
         face_encodings, signature = pickle.loads(b_face_encodings, encoding='bytes')#.decode()
         
         # check signature
-        to_hash = bytes(encodings)#array.array('B', encodings).tostring()
+        to_hash = bytes(face_encodings)#array.array('B', encodings).tostring()
         h = hashlib.sha256(to_hash).digest()
         vk = VerifyingKey.from_pem(open("pubkey.pem").read())
         vk.verify_digest(signature, h)
