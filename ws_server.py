@@ -12,6 +12,9 @@ from scientio.ontology.ontology import Ontology
 from scientio.session import Session
 from scientio.ontology.node import Node
 
+from ecdsa import VerifyingKey
+import hashlib
+
 class FaceOracle:
     def __init__(self):
         self.r = redis.Redis(host='172.17.0.1', port=6379, db=0)
@@ -37,6 +40,13 @@ class FaceOracle:
         b_face_encodings = await websocket.recv()
         #print(b_face_encoding)
         face_encodings, signature = pickle.loads(b_face_encodings, encoding='bytes')#.decode()
+        
+        # check signature
+        to_hash = bytes(encodings)#array.array('B', encodings).tostring()
+        h = hashlib.sha256(to_hash).digest()
+        vk = VerifyingKey.from_pem(open("pubkey.pem").read())
+        vk.verify_digest(signature, h)
+
         #face_encoding = struct.unpack('%sd' % 128, b_face_encoding)
         ids, known_faces = self.get_known_faces()
         names = []
