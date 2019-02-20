@@ -17,7 +17,7 @@ import hashlib
 
 class FaceOracle:
     def __init__(self):
-        self.r = redis.Redis(host='172.17.0.1', port=6379, db=0)
+        self.r = redis.Redis(host='bot.roboy.org', port=6379, password=os.environ['REDIS_PASSWORD'], db=0)
         self.start_server = websockets.serve(self.recognize, '0.0.0.0', 8765)
 
     def start(self):
