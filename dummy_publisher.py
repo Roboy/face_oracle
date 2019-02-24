@@ -2,14 +2,14 @@ import rclpy
 
 from time import sleep
 from roboy_cognition_msgs.msg import FacialFeatures, RecognizedFaces
-
+import numpy as np
 
 def main(args=None):
     rclpy.init(args=args)
 
     node = rclpy.create_node('minimal_publisher')
 
-    names_pub = node.create_publisher('/roboy/cognition/vision/visible_face_names', RecognizedFaces)
+    names_pub = node.create_publisher(RecognizedFaces, '/roboy/cognition/vision/visible_face_names')
 
 
 
@@ -18,8 +18,8 @@ def main(args=None):
     i = 0
     while rclpy.ok():
         msg.names = ["wagram"]
-        msg.confidence = np.zeros(len(msg.names))
-        publisher.publish(msg)
+        msg.confidence = [0.9]
+        names_pub.publish(msg)
         sleep(2)  # seconds
 
     # Destroy the node explicitly
