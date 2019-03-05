@@ -5,7 +5,7 @@ import pickle
 import numpy as np
 
 from roboy_cognition_msgs.msg import FacialFeatures, RecognizedFaces
-from roboy_cognition_msgs.srv import RecognizeFaces, RecognizeFacesResponse
+from roboy_cognition_msgs.srv import Talk, RecognizeFaces, RecognizeFacesResponse
 
 def cb(req):
     encodings = [np.array(e.ff) for e in req.encodings]
