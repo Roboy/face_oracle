@@ -8,6 +8,7 @@ import rospy
 from sensor_msgs.msg import CompressedImage, PointCloud2
 from roboy_cognition_msgs.srv import RecognizeFaces, RecognizeFacesRequest
 from roboy_cognition_msgs.msg import FacialFeatures, RecognizedFaces
+from geometry_msgs.msg import Point
 from roboy_control_msgs.msg import Strings
 import numpy as np
 import websocket
@@ -76,7 +77,11 @@ def frame_callback(frame):
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(frame, "%s %i%% "%(name, confidence*100), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-        print("x: %f, y: %f"%(left+(right-left)/2.0-1280/2.0,top+(bottom-top)/2.0-720/2.0))
+        point = Point()
+        point.x = left+(right-left)/2.0-1280/2.0
+        point.y = top+(bottom-top)/2.0-720/2.0
+        face_position_publisher.publish(point)
+        # print("x: %f, y: %f"%(left+(right-left)/2.0-1280/2.0,top+(bottom-top)/2.0-720/2.0))
 
     # Display the resulting image
     hsvImg = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -104,6 +109,7 @@ rospy.init_node('face_encodings_extractor')
 # ts.registerCallback(zed_frame_callback)
 # rospy.wait_for_service('/roboy/cognition/vision/face_encodings')
 publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings', RecognizeFaces)
+face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinates', Point, queue_size=1)
 
 # Get a reference to webcam #0 (the default one)
 video_capture = cv2.VideoCapture(2)
