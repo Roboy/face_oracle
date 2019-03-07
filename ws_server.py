@@ -17,7 +17,7 @@ import hashlib
 
 class FaceOracle:
     def __init__(self):
-        self.r = redis.Redis(host='172.17.0.1', port=6379, db=0)
+        self.r = redis.Redis(host='bot.roboy.org', port=6379, password=os.environ['REDIS_PASSWORD'], db=0)
         self.start_server = websockets.serve(self.recognize, '0.0.0.0', 8765)
 
     def start(self):
@@ -44,11 +44,11 @@ class FaceOracle:
         # check signature
         #to_hash = bytearray(face_encodings)#array.array('B', encodings).tostring()
         #h = hashlib.sha256(to_hash).digest()
-        vk = VerifyingKey.from_pem(open("pubkey.pem").read())
-        try: 
-            vk.verify_digest(signature, h)
-        except:
-            print("Some dirty business here. Could not verify signature")
+        vk = VerifyingKey.from_pem(open("newpubkey.pem").read())
+        #try: 
+        #    vk.verify_digest(signature, h)
+        #except:
+        #    print("Some dirty business here. Could not verify signature")
 
         #face_encoding = struct.unpack('%sd' % 128, b_face_encoding)
         ids, known_faces = self.get_known_faces()
