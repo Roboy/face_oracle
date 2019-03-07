@@ -4,20 +4,28 @@ import cv2
 # import websockets
 import pickle
 import rospy
-from rospy.numpy_msg import numpy_msg
+# from rospy.numpy_msg import numpy_msg
 from sensor_msgs.msg import CompressedImage, PointCloud2
 from roboy_cognition_msgs.srv import RecognizeFaces, RecognizeFacesRequest
 from roboy_cognition_msgs.msg import FacialFeatures, RecognizedFaces
+from geometry_msgs.msg import Point
 from roboy_control_msgs.msg import Strings
 import numpy as np
 import websocket
 import ssl
 import time
 import pdb
-import ros_numpy
+import signal
+import sys
+
+camera = 1
+
+# import ros_numpy
 
 def frame_callback(frame):
 
+    # frame = frame[0:376, 0:672]
+    # pdb.set_trace()
     face_locations = []
     face_encodings = []
     face_names = []
@@ -25,10 +33,11 @@ def frame_callback(frame):
     process_this_frame = True
 
     # Resize frame of video to 1/4 size for faster face recognition processing
-    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+    scale_fator = 0.5
+    small_frame = cv2.resize(frame, (0, 0), fx=scale_fator, fy=scale_fator)
 
     # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-    rgb_small_frame = small_frame[:, :, ::-1]
+    rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB) # small_frame[:, :, ::-1]
 
 
     # Only process every other frame of video to save time
@@ -51,10 +60,10 @@ def frame_callback(frame):
     # Display the results
     for (top, right, bottom, left), name, confidence in zip(face_locations, face_names, face_confidences):
         # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-        top *= 4
-        right *= 4
-        bottom *= 4
-        left *= 4
+        top *= int(1/scale_fator)
+        right *= int(1/scale_fator)
+        bottom *= int(1/scale_fator)
+        left *= int(1/scale_fator)
         if point_cloud is not None:
             # point_cloud = ros_numpy.numpify(pcl)
             pos3D = point_cloud[top][right]
@@ -68,13 +77,25 @@ def frame_callback(frame):
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(frame, "%s %i%% "%(name, confidence*100), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+        point = Point()
+        point.x = left+(right-left)/2.0-1280/2.0
+        point.y = top+(bottom-top)/2.0-720/2.0
+        face_position_publisher.publish(point)
+        # print("x: %f, y: %f"%(left+(right-left)/2.0-1280/2.0,top+(bottom-top)/2.0-720/2.0))
 
     # Display the resulting image
+    hsvImg = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    hsvImg[...,1] = hsvImg[...,1]*0.9
+    hsvImg[...,2] = hsvImg[...,2]*0.9
+
+    frame = cv2.cvtColor(hsvImg, cv2.COLOR_HSV2BGR)
     cv2.imshow('Video', frame)
     cv2.waitKey(1)
     # Hit 'q' on the keyboard to quit!
     # if cv2.waitKey(1) & 0xFF == ord('q'):
     #     break
+
+
 
 
 global point_cloud
@@ -88,11 +109,33 @@ rospy.init_node('face_encodings_extractor')
 # ts.registerCallback(zed_frame_callback)
 # rospy.wait_for_service('/roboy/cognition/vision/face_encodings')
 publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings', RecognizeFaces)
+face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinates', Point, queue_size=1)
 
 # Get a reference to webcam #0 (the default one)
-video_capture = cv2.VideoCapture(0)
-while True:
-    ret, frame = video_capture.read()
-    frame_callback(frame)
+video_capture = cv2.VideoCapture(2)
+video_capture.set(3, 2560)
+video_capture.set(4, 720)
+# video_capture.set(3,1280)
 
+
+def signal_handler(sig, frame):
+        # print('You pressed Ctrl+C!')
+        video_capture.release
+        cv2.destroyAllWindows()
+
+        sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
+i = 0
+while True:
+    i += 1
+    ret, frame = video_capture.read()
+    # if i%5 == 0 and frame is not None:
+    try:
+        frame_callback(frame[0:720, 0:1280])
+    except:
+        break
+
+video_capture.release
 cv2.destroyAllWindows()
