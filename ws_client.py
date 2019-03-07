@@ -8,9 +8,7 @@ from ecdsa import VerifyingKey
 import hashlib
 
 from roboy_cognition_msgs.msg import FacialFeatures, RecognizedFaces
-<<<<<<< HEAD
-from roboy_cognition_msgs.srv import Talk, RecognizeFaces, RecognizeFacesResponse
-=======
+
 from roboy_cognition_msgs.srv import RecognizeFaces, RecognizeFacesResponse
 from roboy_middleware_msgs.srv import OptigaSign, OptigaSignResponse
 
@@ -28,8 +26,6 @@ def decode_DER_signature(dirty_signature):
     s = dirty_signature[36:]
 
     return r + s
-
->>>>>>> 78fc5c065e0dd93717ef25fa97ceb57836af5088
 
 def cb(req):
     encodings = [np.array(e.ff) for e in req.encodings]

@@ -49,12 +49,22 @@ def zed_frame_callback(img):
         face_locations = face_recognition.face_locations(rgb_small_frame)
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
         face_names = []
-        req = RecognizeFacesRequest()
-        req.encodings = [FacialFeatures(ff=encoding) for encoding in face_encodings]
+        encodings = [FacialFeatures(ff=encoding) for encoding in face_encodings]
         if len(face_encodings) > 0:
-            resp = publish_names_srv(req)
-            face_names = resp.names
-            face_confidences = resp.confidence
+            pickled_encodings = pickle.dumps((encodings, 0, 0), protocol=2)
+
+            # ws = websocket.create_connection("wss://bot.roboy.org:8765", sslopt=sslopt)
+            ws = websocket.create_connection("ws://bot.roboy.org:8765")
+            ws.send_binary(pickled_encodings)
+            pickled_results = ws.recv()
+            ws.close()
+
+            face_names, face_confidences = pickle.loads(pickled_results)
+
+            msg = RecognizedFaces()
+            msg.names = face_names
+            msg.confidence = face_confidences
+            names_pub.publish(msg)
 
     process_this_frame = not process_this_frame
 
@@ -100,6 +110,7 @@ rospy.init_node('face_encodings_extractor')
 img_sub = rospy.Subscriber('/zed/left/image_rect_color/compressed', CompressedImage, zed_frame_callback)
 # rospy.wait_for_service('/roboy/cognition/vision/face_encodings')
 publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings', RecognizeFaces)
+names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', RecognizedFaces, queue_size=1)
 rospy.spin()
 
 cv2.destroyAllWindows()
