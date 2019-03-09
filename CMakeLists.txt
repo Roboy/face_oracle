@@ -7,10 +7,10 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
-  roboy_communication_cognition
+  roboy_cognition_msgs
 )
 
 
 catkin_package(
-  CATKIN_DEPENDS rospy std_msgs  roboy_communication_cognition
+  CATKIN_DEPENDS rospy std_msgs  roboy_cognition_msgs
 )

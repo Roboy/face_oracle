@@ -14,7 +14,8 @@ import websocket
 import ssl
 import time
 import pdb
-import ros_numpy
+# import ros_numpy
+from bondpy import bondpy
 
 # Get a reference to webcam #0 (the default one)
 # video_capture = cv2.VideoCapture(0)
@@ -51,7 +52,7 @@ def zed_frame_callback(img):
         face_names = []
         encodings = [FacialFeatures(ff=encoding) for encoding in face_encodings]
         if len(face_encodings) > 0:
-            pickled_encodings = pickle.dumps((encodings, 0, 0), protocol=2)
+            pickled_encodings = pickle.dumps((face_encodings, bytes(), "abc"), protocol=2)
 
             # ws = websocket.create_connection("wss://bot.roboy.org:8765", sslopt=sslopt)
             ws = websocket.create_connection("ws://bot.roboy.org:8765")
@@ -70,28 +71,28 @@ def zed_frame_callback(img):
 
     scaled_face_locations = []
     # Display the results
-    for (top, right, bottom, left), name, confidence in zip(face_locations, face_names, face_confidences):
-        # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-        top *= 4
-        right *= 4
-        bottom *= 4
-        left *= 4
-        if point_cloud is not None:
-            # point_cloud = ros_numpy.numpify(pcl)
-            pos3D = point_cloud[top][right]
-            print("x: %f, y: %f, z: %f"%(pos3D[0], pos3D[1], pos3D[2]))
-        # scaled_face_locations.append((top, right, bottom, left))
+    # for (top, right, bottom, left), name, confidence in zip(face_locations, face_names, face_confidences):
+    #     # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+    #     top *= 4
+    #     right *= 4
+    #     bottom *= 4
+    #     left *= 4
+    #     if point_cloud is not None:
+    #         # point_cloud = ros_numpy.numpify(pcl)
+    #         pos3D = point_cloud[top][right]
+    #         print("x: %f, y: %f, z: %f"%(pos3D[0], pos3D[1], pos3D[2]))
+    #     # scaled_face_locations.append((top, right, bottom, left))
 
-        # Draw a box around the face
-        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+    #     # Draw a box around the face
+    #     cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
-        # Draw a label with a name below the face
-        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
-        font = cv2.FONT_HERSHEY_DUPLEX
-        cv2.putText(frame, "%s %i%% "%(name, confidence*100), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+    #     # Draw a label with a name below the face
+    #     cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+    #     font = cv2.FONT_HERSHEY_DUPLEX
+    #     cv2.putText(frame, "%s %i%% "%(name, confidence*100), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
     # Display the resulting image
-    cv2.imshow('Video', frame)
+    # cv2.imshow('Video', frame)
     cv2.waitKey(1)
     # Hit 'q' on the keyboard to quit!
     # if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -102,6 +103,9 @@ global point_cloud
 point_cloud = None
 
 rospy.init_node('face_encodings_extractor')
+
+bond = bondpy.Bond("skill_machine_bonds", "face_encodings_extractor_bond")
+bond.start()
 
 # pcl_sub = message_filters.Subscriber('/zed/point_cloud/cloud_registered', PointCloud2)#, zed_pcl_callback)
 # img_sub = message_filters.Subscriber('/zed/left/image_rect_color/compressed', CompressedImage)#, zed_frame_callback)
