@@ -29,7 +29,8 @@ import time
 
 capture=None
 camera = 1
-
+IP='192.168.0.105'
+port=8081
 # import ros_numpy
 
 def frame_callback(frame):
@@ -154,7 +155,7 @@ class CamHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type','text/html')
             self.end_headers()
             self.wfile.write('<html><head></head><body>')
-            self.wfile.write('<img src="http://192.168.0.109:8081/cam.mjpg"/>')
+            self.wfile.write('<img src="http://'+IP+':'+port+'/cam.mjpg"/>')
             self.wfile.write('</body></html>')
             return
 
@@ -196,7 +197,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 try:
-    server = ThreadedHTTPServer(('192.168.0.109', 8081), CamHandler)
+    server = ThreadedHTTPServer((IP, port), CamHandler)
     print "server started"
     server.serve_forever()
     # i = 0
