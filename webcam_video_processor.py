@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import face_recognition
 import cv2
 # import asyncio
@@ -18,6 +19,15 @@ import pdb
 import signal
 import sys
 
+import cv2
+from PIL import Image
+import threading
+from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
+from SocketServer import ThreadingMixIn
+import StringIO
+import time
+
+capture=None
 camera = 1
 
 # import ros_numpy
@@ -61,7 +71,6 @@ def frame_callback(frame):
                 ws.close()
 
                 face_names, face_confidences = pickle.loads(pickled_results)
-                print len(face_names)
             except Exception, e:
                 print('Error: '+ str(e))    
             # pdb.set_trace()
@@ -103,19 +112,60 @@ def frame_callback(frame):
     hsvImg = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     hsvImg[...,1] = hsvImg[...,1]*0.9
     hsvImg[...,2] = hsvImg[...,2]*0.9
-
-    frame = cv2.cvtColor(hsvImg, cv2.COLOR_HSV2BGR)
-    cv2.imshow('Video', frame)
-    cv2.waitKey(1)
+    global marked_frame
+    marked_frame = cv2.cvtColor(hsvImg, cv2.COLOR_HSV2BGR)
+    # cv2.imshow('Video', marked_frame)
+    # cv2.waitKey(1)
     # Hit 'q' on the keyboard to quit!
     # if cv2.waitKey(1) & 0xFF == ord('q'):
     #     break
 
 
+class CamHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        global marked_frame
+        if self.path.endswith('.mjpg'):
+            print("sending")
+            self.send_response(200)
+            self.send_header('Content-type','multipart/x-mixed-replace; boundary=--jpgboundary')
+            self.end_headers()
+            while not rospy.is_shutdown():
+                try:
+                    ret, frame = video_capture.read()
+                    frame_callback(frame)
+                    # rc,img = capture.read()
+                    if marked_frame is None:
+                        continue
+                    imgRGB=cv2.cvtColor(marked_frame,cv2.COLOR_BGR2RGB)
+                    jpg = Image.fromarray(imgRGB)
+                    tmpFile = StringIO.StringIO()
+                    jpg.save(tmpFile,'JPEG')
+                    self.wfile.write("--jpgboundary")
+                    self.send_header('Content-type','image/jpeg')
+                    self.send_header('Content-length',str(tmpFile.len))
+                    self.end_headers()
+                    jpg.save(self.wfile,'JPEG')
+                    time.sleep(0.01)
+                except KeyboardInterrupt:
+                    break
+            return
+        if self.path.endswith('.html'):
+            self.send_response(200)
+            self.send_header('Content-type','text/html')
+            self.end_headers()
+            self.wfile.write('<html><head></head><body>')
+            self.wfile.write('<img src="http://192.168.0.109:8081/cam.mjpg"/>')
+            self.wfile.write('</body></html>')
+            return
 
 
-global point_cloud
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+
+
+global point_cloud, marked_frame, video_capture
 point_cloud = None
+marked_frame = None
 
 rospy.init_node('face_encodings_extractor')
 
@@ -129,8 +179,8 @@ face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinat
 names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', RecognizedFaces, queue_size=1)
 # Get a reference to webcam #0 (the default one)
 video_capture = cv2.VideoCapture(0)
-video_capture.set(3, 2560)
-video_capture.set(4, 720)
+# video_capture.set(3, 2560)
+# video_capture.set(4, 720)
 # video_capture.set(3,1280)
 
 
@@ -143,15 +193,23 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-i = 0
-while True:
-    i += 1
-    ret, frame = video_capture.read()
-    # if i%5 == 0 and frame is not None:
-    try:
-        frame_callback(frame[0:720, 0:1280])
-    except:
-        break
 
-video_capture.release
-cv2.destroyAllWindows()
+
+try:
+    server = ThreadedHTTPServer(('192.168.0.109', 8081), CamHandler)
+    print "server started"
+    server.serve_forever()
+    # i = 0
+    # while True:
+    #     i += 1
+    #     ret, frame = video_capture.read()
+    #     # if i%5 == 0 and frame is not None:
+    #     try:
+    #         frame_callback(frame[0:720, 0:1280])
+    #     except:
+    #         break
+
+except KeyboardInterrupt:
+    video_capture.release()
+    server.socket.close()
+    cv2.destroyAllWindows()
