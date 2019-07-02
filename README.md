@@ -13,5 +13,7 @@ cd catkin_ws
 catkin_make
 source catkin_ws/devel/setup.bash
 
+roscore&
+
 cd catkin_ws/src/face_oracle
 python webcam_video_processor.py
