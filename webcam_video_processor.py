@@ -29,13 +29,28 @@ import time
 
 capture=None
 camera = 1
-IP='192.168.0.105'
-port=8081
+IP='127.0.0.1'
+# IP='192.168.0.105'
+port=8088
 # import ros_numpy
+def increase_brightness(img, value=30):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+
+    lim = 255 - value
+    v[v > lim] = 255
+    v[v <= lim] += value
+
+    final_hsv = cv2.merge((h, s, v))
+    img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    return img
 
 def frame_callback(frame):
 
-    # frame = frame[0:376, 0:672]
+    frame = frame[0:720, 0:1280]
+    # frame = cv2.flip( frame, 0 )
+    # frame = cv2.flip( frame, 1 )
+    frame = increase_brightness(frame, 20)
     # pdb.set_trace()
     face_locations = []
     face_encodings = []
@@ -73,12 +88,12 @@ def frame_callback(frame):
 
                 face_names, face_confidences = pickle.loads(pickled_results)
             except Exception, e:
-                print('Error: '+ str(e))    
+                print('Error: '+ str(e))
             # pdb.set_trace()
-            # msg = RecognizedFaces()
-            # msg.names = face_names
-            # msg.confidence = face_confidences
-            # names_pub.publish(msg)
+            msg = RecognizedFaces()
+            msg.names = face_names
+            msg.confidence = face_confidences
+            names_pub.publish(msg)
 
     process_this_frame = not process_this_frame
 
@@ -102,7 +117,10 @@ def frame_callback(frame):
         # Draw a label with a name below the face
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
-        cv2.putText(frame, "%s %i%% "%(name, confidence*100), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+        try:
+            cv2.putText(frame, "%s %i%% "%(name, confidence*100), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+        except:
+            pass
         point = Point()
         point.x = left+(right-left)/2.0-1280/2.0
         point.y = top+(bottom-top)/2.0-720/2.0
@@ -115,8 +133,8 @@ def frame_callback(frame):
     hsvImg[...,2] = hsvImg[...,2]*0.9
     global marked_frame
     marked_frame = cv2.cvtColor(hsvImg, cv2.COLOR_HSV2BGR)
-    # cv2.imshow('Video', marked_frame)
-    # cv2.waitKey(1)
+    #cv2.imshow('Video', marked_frame)
+    #cv2.waitKey(1)
     # Hit 'q' on the keyboard to quit!
     # if cv2.waitKey(1) & 0xFF == ord('q'):
     #     break
@@ -126,29 +144,32 @@ class CamHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         global marked_frame
         if self.path.endswith('.mjpg'):
-            print("sending")
-            self.send_response(200)
-            self.send_header('Content-type','multipart/x-mixed-replace; boundary=--jpgboundary')
-            self.end_headers()
-            while not rospy.is_shutdown():
-                try:
-                    ret, frame = video_capture.read()
-                    frame_callback(frame)
-                    # rc,img = capture.read()
-                    if marked_frame is None:
-                        continue
-                    imgRGB=cv2.cvtColor(marked_frame,cv2.COLOR_BGR2RGB)
-                    jpg = Image.fromarray(imgRGB)
-                    tmpFile = StringIO.StringIO()
-                    jpg.save(tmpFile,'JPEG')
-                    self.wfile.write("--jpgboundary")
-                    self.send_header('Content-type','image/jpeg')
-                    self.send_header('Content-length',str(tmpFile.len))
-                    self.end_headers()
-                    jpg.save(self.wfile,'JPEG')
-                    time.sleep(0.01)
-                except KeyboardInterrupt:
-                    break
+            try:
+                print("sending")
+                self.send_response(200)
+                self.send_header('Content-type','multipart/x-mixed-replace; boundary=--jpgboundary')
+                self.end_headers()
+                while not rospy.is_shutdown():
+                    try:
+                        ret, frame = video_capture.read()
+                        frame_callback(frame)
+                        # rc,img = capture.read()
+                        if marked_frame is None:
+                            continue
+                        imgRGB=cv2.cvtColor(marked_frame,cv2.COLOR_BGR2RGB)
+                        jpg = Image.fromarray(imgRGB)
+                        tmpFile = StringIO.StringIO()
+                        jpg.save(tmpFile,'JPEG')
+                        self.wfile.write("--jpgboundary")
+                        self.send_header('Content-type','image/jpeg')
+                        self.send_header('Content-length',str(tmpFile.len))
+                        self.end_headers()
+                        jpg.save(self.wfile,'JPEG')
+                        time.sleep(0.01)
+                    except KeyboardInterrupt:
+                        break
+            except:
+                pass            
             return
         if self.path.endswith('.html'):
             self.send_response(200)
@@ -180,8 +201,8 @@ face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinat
 names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', RecognizedFaces, queue_size=1)
 # Get a reference to webcam #0 (the default one)
 video_capture = cv2.VideoCapture(0)
-# video_capture.set(3, 2560)
-# video_capture.set(4, 720)
+video_capture.set(3, 2560)
+video_capture.set(4, 720)
 # video_capture.set(3,1280)
 
 
