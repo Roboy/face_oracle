@@ -54,16 +54,19 @@ class FaceOracle:
         ids, known_faces = self.get_known_faces()
         names = []
         confidences = []
+        node_ids = []
         for face_encoding in face_encodings:
             idx, confidence = FaceRec.match_face(face_encoding, known_faces)
             if idx is not None:
                 node = sess.retrieve(node_id=int(ids[idx].decode('utf-8')))[0]
+                node_ids.append(int(ids[idx].decode('utf-8')))
                 names.append(node.get_name())
                 confidences.append(confidence)
             else:
                 names.append("stranger")
                 confidences.append(1.0)
-        await websocket.send(pickle.dumps((names, confidences), protocol=2))
+                node_ids.append(-1)
+        await websocket.send(pickle.dumps((names, confidences, node_ids), protocol=2))
 
 if __name__ == '__main__':
     global sess
