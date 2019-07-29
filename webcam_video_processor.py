@@ -85,7 +85,7 @@ def frame_callback(frame):
                 ws.send_binary(pickled_encodings)
                 pickled_results = ws.recv()
                 ws.close()
-                    
+
                 face_names, face_confidences, face_node_ids = pickle.loads(pickled_results)
             except Exception, e:
                 print('Error: '+ str(e))
@@ -93,7 +93,7 @@ def frame_callback(frame):
             msg.names = face_names
             msg.confidence = face_confidences
             msg.ids = face_node_ids
-            msg.face_encodings = encodings
+            msg.face_encodings = [FacialFeatures(ff=x) for x in face_encodings]
             names_pub.publish(msg)
 
     process_this_frame = not process_this_frame
