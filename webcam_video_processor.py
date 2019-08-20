@@ -8,7 +8,7 @@ import rospy
 # from rospy.numpy_msg import numpy_msg
 from sensor_msgs.msg import CompressedImage, PointCloud2
 from roboy_cognition_msgs.srv import RecognizeFaces, RecognizeFacesRequest
-from roboy_cognition_msgs.msg import FacialFeatures, RecognizedFaces
+from roboy_cognition_msgs.msg import FacialFeatures, RecognizedFaces, Faces
 from geometry_msgs.msg import Point
 from roboy_control_msgs.msg import Strings
 import numpy as np
@@ -86,13 +86,14 @@ def frame_callback(frame):
                 pickled_results = ws.recv()
                 ws.close()
 
-                face_names, face_confidences = pickle.loads(pickled_results)
+                face_names, face_confidences, face_node_ids = pickle.loads(pickled_results)
             except Exception, e:
                 print('Error: '+ str(e))
-            # pdb.set_trace()
-            msg = RecognizedFaces()
+            msg = Faces()
             msg.names = face_names
             msg.confidence = face_confidences
+            msg.ids = face_node_ids
+            msg.face_encodings = [FacialFeatures(ff=x) for x in face_encodings]
             names_pub.publish(msg)
 
     process_this_frame = not process_this_frame
@@ -198,7 +199,7 @@ rospy.init_node('face_encodings_extractor')
 # rospy.wait_for_service('/roboy/cognition/vision/face_encodings')
 publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings', RecognizeFaces)
 face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinates', Point, queue_size=1)
-names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', RecognizedFaces, queue_size=1)
+names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', Faces, queue_size=1)
 # Get a reference to webcam #0 (the default one)
 video_capture = cv2.VideoCapture(0)
 video_capture.set(3, 2560)
