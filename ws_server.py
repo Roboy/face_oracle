@@ -15,9 +15,32 @@ from scientio.ontology.node import Node
 from ecdsa import VerifyingKey
 import hashlib
 
+argdef = ArgumentParser(description="This script hosts a websocker server that processes face recognition requests.")
+argdef.add_argument(
+    "--redis-pass",
+    dest="redis_pass",
+    default=os.environ['REDIS_PASSWORD'],
+    help="Redis password")
+argdef.add_argument(
+    "--redis-port",
+    dest="redis_port",
+    default=6379,
+    help="Redis port.")
+argdef.add_argument(
+    "--redis-host",
+    dest="redis_host",
+    default="bot.roboy.org",
+    help="Redis host.")
+args = argdef.parse_args()
+
+
 class FaceOracle:
     def __init__(self):
-        self.r = redis.Redis(host='bot.roboy.org', port=6379, password=os.environ['REDIS_PASSWORD'], db=0)
+        self.r = redis.Redis(
+            host=args.redis_host,
+            port=args.redis_port,
+            password=args.redis_pass,
+            db=0)
         self.start_server = websockets.serve(self.recognize, '0.0.0.0', 8765)
 
     def start(self):
