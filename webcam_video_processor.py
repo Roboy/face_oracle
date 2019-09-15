@@ -18,6 +18,7 @@ import time
 import pdb
 import signal
 import sys
+import argparse
 
 import cv2
 from PIL import Image
@@ -26,6 +27,13 @@ from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 from SocketServer import ThreadingMixIn
 import StringIO
 import time
+
+from argparse import ArgumentParser
+
+args = ArgumentParser(description="This script converts OpenCV camera input to Roboy ROS Faces messages.")
+args.add_argument("--input", "-i", default=0, nargs=1, help="Input for OpenCV2 VideoCapture, such as video device index or rtmp URL.")
+args.parse_args()
+
 
 capture=None
 camera = 1
@@ -47,7 +55,7 @@ def increase_brightness(img, value=30):
 
 def frame_callback(frame):
 
-    frame = frame[0:720, 0:1280]
+    # frame = frame[0:720, 0:1280]
     # frame = cv2.flip( frame, 0 )
     # frame = cv2.flip( frame, 1 )
     frame = increase_brightness(frame, 20)
@@ -201,9 +209,9 @@ publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings',
 face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinates', Point, queue_size=1)
 names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', Faces, queue_size=1)
 # Get a reference to webcam #0 (the default one)
-video_capture = cv2.VideoCapture(0)
-video_capture.set(3, 2560)
-video_capture.set(4, 720)
+video_capture = cv2.VideoCapture(args.input)
+# video_capture.set(3, 2560)
+# video_capture.set(4, 720)
 # video_capture.set(3,1280)
 
 
