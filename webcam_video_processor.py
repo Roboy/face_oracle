@@ -31,15 +31,27 @@ import time
 from argparse import ArgumentParser
 
 args = ArgumentParser(description="This script converts OpenCV camera input to Roboy ROS Faces messages.")
-args.add_argument("--input", "-i", default=0, nargs=1, help="Input for OpenCV2 VideoCapture, such as video device index or rtmp URL.")
+args.add_argument(
+    "--input", "-i",
+    dest="source",
+    default=0,
+    nargs=1,
+    help="Input for OpenCV2 VideoCapture, such as video device index or rtmp URL.")
+args.add_argument(
+    "--query", "-q",
+    dest="query_endpoint",
+    default="ws://bot.roboy.org:8765",
+    nargs=1,
+    help="FaceOracle query server websocket endpoint.")
+args.add_argument(
+    "--address", "-a",
+    dest="ui_address",
+    default="localhost:8088",
+    nargs=1,
+    help="Network Interface on which camera HTTP stream is served.")
 args.parse_args()
 
 
-capture=None
-camera = 1
-IP='127.0.0.1'
-# IP='192.168.0.105'
-port=8088
 # import ros_numpy
 def increase_brightness(img, value=30):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -54,12 +66,7 @@ def increase_brightness(img, value=30):
     return img
 
 def frame_callback(frame):
-
-    # frame = frame[0:720, 0:1280]
-    # frame = cv2.flip( frame, 0 )
-    # frame = cv2.flip( frame, 1 )
     frame = increase_brightness(frame, 20)
-    # pdb.set_trace()
     face_locations = []
     face_encodings = []
     face_names = []
@@ -75,7 +82,6 @@ def frame_callback(frame):
 
 
     # Only process every other frame of video to save time
-    # pdb.set_trace()
     if process_this_frame:
         # Find all the faces and face encodings in the current frame of video
         face_locations = face_recognition.face_locations(rgb_small_frame)
@@ -85,15 +91,11 @@ def frame_callback(frame):
         encodings = [FacialFeatures(ff=encoding) for encoding in face_encodings]
         if len(face_encodings) > 0:
             pickled_encodings = pickle.dumps((face_encodings, bytes(), "abc"), protocol=2)
-
-            # ws = websocket.create_connection("wss://bot.roboy.org:8765", sslopt=sslopt)
-            # pdb.set_trace()
             try:
-                ws = websocket.create_connection("ws://bot.roboy.org:8765")
+                ws = websocket.create_connection(args.query_endpoint)
                 ws.send_binary(pickled_encodings)
                 pickled_results = ws.recv()
                 ws.close()
-
                 face_names, face_confidences, face_node_ids = pickle.loads(pickled_results)
             except Exception, e:
                 print('Error: '+ str(e))
@@ -142,11 +144,6 @@ def frame_callback(frame):
     hsvImg[...,2] = hsvImg[...,2]*0.9
     global marked_frame
     marked_frame = cv2.cvtColor(hsvImg, cv2.COLOR_HSV2BGR)
-    #cv2.imshow('Video', marked_frame)
-    #cv2.waitKey(1)
-    # Hit 'q' on the keyboard to quit!
-    # if cv2.waitKey(1) & 0xFF == ord('q'):
-    #     break
 
 
 class CamHandler(BaseHTTPRequestHandler):
@@ -185,7 +182,7 @@ class CamHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type','text/html')
             self.end_headers()
             self.wfile.write('<html><head></head><body>')
-            self.wfile.write('<img src="http://'+IP+':'+port+'/cam.mjpg"/>')
+            self.wfile.write('<img src="http://'+args.ui_address+'/cam.mjpg"/>')
             self.wfile.write('</body></html>')
             return
 
@@ -193,53 +190,29 @@ class CamHandler(BaseHTTPRequestHandler):
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
-
 global point_cloud, marked_frame, video_capture
 point_cloud = None
 marked_frame = None
 
 rospy.init_node('face_encodings_extractor')
 
-# pcl_sub = message_filters.Subscriber('/zed/point_cloud/cloud_registered', PointCloud2)#, zed_pcl_callback)
-# img_sub = message_filters.Subscriber('/zed/left/image_rect_color/compressed', CompressedImage)#, zed_frame_callback)
-# ts = message_filters.ApproximateTimeSynchronizer([img_sub, pcl_sub], 10, 2, allow_headerless=True)
-# ts.registerCallback(zed_frame_callback)
-# rospy.wait_for_service('/roboy/cognition/vision/face_encodings')
 publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings', RecognizeFaces)
 face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinates', Point, queue_size=1)
 names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', Faces, queue_size=1)
-# Get a reference to webcam #0 (the default one)
-video_capture = cv2.VideoCapture(args.input)
-# video_capture.set(3, 2560)
-# video_capture.set(4, 720)
-# video_capture.set(3,1280)
-
+video_capture = cv2.VideoCapture(args.source)
 
 def signal_handler(sig, frame):
-        # print('You pressed Ctrl+C!')
-        video_capture.release
-        cv2.destroyAllWindows()
-
-        sys.exit(0)
+    # print('You pressed Ctrl+C!')
+    video_capture.release
+    cv2.destroyAllWindows()
+    sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
 
-
-
 try:
-    server = ThreadedHTTPServer((IP, port), CamHandler)
+    server = ThreadedHTTPServer(args.ui_address.split(":"), CamHandler)
     print "server started"
     server.serve_forever()
-    # i = 0
-    # while True:
-    #     i += 1
-    #     ret, frame = video_capture.read()
-    #     # if i%5 == 0 and frame is not None:
-    #     try:
-    #         frame_callback(frame[0:720, 0:1280])
-    #     except:
-    #         break
-
 except KeyboardInterrupt:
     video_capture.release()
     server.socket.close()
