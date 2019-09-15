@@ -19,7 +19,7 @@ argdef = ArgumentParser(description="This script hosts a websocker server that p
 argdef.add_argument(
     "--redis-pass",
     dest="redis_pass",
-    default=os.environ['REDIS_PASSWORD'],
+    default=os.environ['REDIS_PASSWORD'] if 'REDIS_PASSWORD' in os.environ else "",
     help="Redis password")
 argdef.add_argument(
     "--redis-port",
