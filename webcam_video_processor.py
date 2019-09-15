@@ -199,7 +199,8 @@ rospy.init_node('face_encodings_extractor')
 publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings', RecognizeFaces)
 face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinates', Point, queue_size=1)
 names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', Faces, queue_size=1)
-video_capture = cv2.VideoCapture(args.source)
+video_capture = cv2.VideoCapture()
+video_capture.open(args.source)
 
 def signal_handler(sig, frame):
     # print('You pressed Ctrl+C!')
