@@ -30,26 +30,26 @@ import time
 
 from argparse import ArgumentParser
 
-args = ArgumentParser(description="This script converts OpenCV camera input to Roboy ROS Faces messages.")
-args.add_argument(
+argdef = ArgumentParser(description="This script converts OpenCV camera input to Roboy ROS Faces messages.")
+argdef.add_argument(
     "--input", "-i",
     dest="source",
     default=0,
     nargs=1,
     help="Input for OpenCV2 VideoCapture, such as video device index or rtmp URL.")
-args.add_argument(
+argdef.add_argument(
     "--query", "-q",
     dest="query_endpoint",
     default="ws://bot.roboy.org:8765",
     nargs=1,
     help="FaceOracle query server websocket endpoint.")
-args.add_argument(
+argdef.add_argument(
     "--address", "-a",
     dest="ui_address",
     default="localhost:8088",
     nargs=1,
     help="Network Interface on which camera HTTP stream is served.")
-args.parse_args()
+args = argdef.parse_args()
 
 
 # import ros_numpy
