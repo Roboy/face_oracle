@@ -35,19 +35,16 @@ argdef.add_argument(
     "--input", "-i",
     dest="source",
     default=0,
-    nargs=1,
     help="Input for OpenCV2 VideoCapture, such as video device index or rtmp URL.")
 argdef.add_argument(
     "--query", "-q",
     dest="query_endpoint",
     default="ws://bot.roboy.org:8765",
-    nargs=1,
     help="FaceOracle query server websocket endpoint.")
 argdef.add_argument(
     "--address", "-a",
     dest="ui_address",
-    default="localhost:8088",
-    nargs=1,
+    default="0.0.0.0:8088",
     help="Network Interface on which camera HTTP stream is served.")
 args = argdef.parse_args()
 
@@ -199,8 +196,8 @@ rospy.init_node('face_encodings_extractor')
 publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings', RecognizeFaces)
 face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinates', Point, queue_size=1)
 names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', Faces, queue_size=1)
-video_capture = cv2.VideoCapture()
-video_capture.open(args.source)
+print "source", args.source
+video_capture = cv2.VideoCapture(args.source)
 
 def signal_handler(sig, frame):
     # print('You pressed Ctrl+C!')
@@ -211,7 +208,9 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 try:
-    server = ThreadedHTTPServer(args.ui_address.split(":"), CamHandler)
+    ip, port = args.ui_address.split(":")
+    print "serving on", ip, port
+    server = ThreadedHTTPServer((ip, int(port)), CamHandler)
     print "server started"
     server.serve_forever()
 except KeyboardInterrupt:
