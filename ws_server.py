@@ -102,9 +102,10 @@ class FaceOracle:
             names.append("stranger")
             confidences.append(.0)
             node_ids.append(-1)
-        response = (names, confidences, node_ids)
-        print(f"[face_oracle server]: Sending response {reponse}")
-        await websocket.send(pickle.dumps(response, protocol=2))
+        print(f"[face_oracle server]: Building response")
+        resp = (names, confidences, node_ids)
+        print(f"[face_oracle server]: Sending response {resp}")
+        await websocket.send(pickle.dumps(resp, protocol=2))
         print(f"[face_oracle server]: Sent!")
 
 if __name__ == '__main__':
@@ -115,7 +116,5 @@ if __name__ == '__main__':
         neo4j_address=os.environ['NEO4J_ADDRESS'],
         neo4j_username=os.environ['NEO4J_USERNAME'],
         neo4j_password=os.environ['NEO4J_PASSWORD'])
-    #res = sess.retrieve(node_id=7)
-    #pdb.set_trace()
     oracle = FaceOracle()
     oracle.start()
