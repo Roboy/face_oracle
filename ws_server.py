@@ -65,9 +65,11 @@ class FaceOracle:
 
     async def recognize(self, websocket, path):
         b_face_encodings = await websocket.recv()
+        print(f"[face_oracle server]: Received query.")
         #print(b_face_encoding)
         face_encodings, h, signature = pickle.loads(b_face_encodings, encoding='bytes')#.decode()
-        
+        print(f"[face_oracle server]: Unpacked query.") 
+
         # check signature
         #to_hash = bytearray(face_encodings)#array.array('B', encodings).tostring()
         #h = hashlib.sha256(to_hash).digest()
@@ -79,22 +81,29 @@ class FaceOracle:
 
         #face_encoding = struct.unpack('%sd' % 128, b_face_encoding)
         ids, known_faces = self.get_known_faces()
+        print(f"[face_oracle server]: Matching {len(face_encodings)} faces among {len(ids)} known faces.")
         names = []
         confidences = []
         node_ids = []
         for face_encoding in face_encodings:
-            idx, confidence = FaceRec.match_face(face_encoding, known_faces)
-            if idx is not None:
-                node = sess.retrieve(node_id=int(ids[idx].decode('utf-8')))[0]
-                node_ids.append(int(ids[idx].decode('utf-8')))
-                names.append(node.get_name())
-                confidences.append(confidence)
-            else:
-                names.append("stranger")
-                confidences.append(1.0)
-                node_ids.append(-1)
-        await websocket.send(pickle.dumps((names, confidences, node_ids), protocol=2))
-        print(f"[face_oracle server]: Answered face query: {(names, confidences, node_ids)}")
+            try:    
+                if len(known_faces) > 0:
+                    idx, confidence = FaceRec.match_face(face_encoding, known_faces)
+                    if idx is not None:
+                        node = sess.retrieve(node_id=int(ids[idx].decode('utf-8')))[0]
+                        node_ids.append(int(ids[idx].decode('utf-8')))
+                        names.append(node.get_name())
+                        confidences.append(confidence)
+                        continue
+            except Exception as e:
+                print(f"[face_oracle server]: ERROR: {e}")
+            names.append("stranger")
+            confidences.append(1.0)
+            node_ids.append(-1)
+        response = (names, confidences, node_ids)
+        print(f"[face_oracle server]: Sending response {reponse}")
+        await websocket.send(pickle.dumps(response, protocol=2))
+        print(f"[face_oracle server]: Sent!")
 
 if __name__ == '__main__':
     global sess

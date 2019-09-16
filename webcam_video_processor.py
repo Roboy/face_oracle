@@ -95,10 +95,15 @@ def frame_callback(frame):
             try:
                 print '[face_oracle client]: Websocket query ...'
                 ws = websocket.create_connection(args.query_endpoint)
+                print '[face_oracle client]:   ... connected.'
                 ws.send_binary(pickled_encodings)
+                print '[face_oracle client]:   ... request sent.'
                 pickled_results = ws.recv()
+                print '[face_oracle client]:   ... response received.'
                 ws.close()
+                print '[face_oracle client]:   ... connection closed.'
                 unpacked_result = pickle.loads(pickled_results)
+                print '[face_oracle client]:   ... result unpacked.'
                 print '[face_oracle client]:   ... got', unpacked_result
                 face_names, face_confidences, face_node_ids = unpacked_result
             except Exception, e:
