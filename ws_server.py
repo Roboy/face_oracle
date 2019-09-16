@@ -71,13 +71,13 @@ class FaceOracle:
         print(f"[face_oracle server]: Unpacked query.") 
 
         # check signature
-        #to_hash = bytearray(face_encodings)#array.array('B', encodings).tostring()
-        #h = hashlib.sha256(to_hash).digest()
-        vk = VerifyingKey.from_pem(open("newpubkey.pem").read())
-        #try: 
-        #    vk.verify_digest(signature, h)
-        #except:
-        #    print("Some dirty business here. Could not verify signature")
+        # to_hash = bytearray(face_encodings)#array.array('B', encodings).tostring()
+        # h = hashlib.sha256(to_hash).digest()
+        # vk = VerifyingKey.from_pem(open("newpubkey.pem").read())
+        # try: 
+        #     vk.verify_digest(signature, h)
+        # except:
+        #     print("Some dirty business here. Could not verify signature")
 
         #face_encoding = struct.unpack('%sd' % 128, b_face_encoding)
         ids, known_faces = self.get_known_faces()
@@ -86,8 +86,9 @@ class FaceOracle:
         confidences = []
         node_ids = []
         for face_encoding in face_encodings:
-            try:    
+            try:
                 if len(known_faces) > 0:
+                    print(f"[face_oracle server]: Calling FaceRec.match_face(...)")
                     idx, confidence = FaceRec.match_face(face_encoding, known_faces)
                     if idx is not None:
                         node = sess.retrieve(node_id=int(ids[idx].decode('utf-8')))[0]
@@ -97,8 +98,9 @@ class FaceOracle:
                         continue
             except Exception as e:
                 print(f"[face_oracle server]: ERROR: {e}")
+            print(f"[face_oracle server]: Falling back to stranger id.")
             names.append("stranger")
-            confidences.append(1.0)
+            confidences.append(.0)
             node_ids.append(-1)
         response = (names, confidences, node_ids)
         print(f"[face_oracle server]: Sending response {reponse}")
