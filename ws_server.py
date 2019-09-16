@@ -34,6 +34,9 @@ argdef.add_argument(
     help="Redis host.")
 args = argdef.parse_args()
 
+print(f"[face_oracle server]: Startup")
+print(f"[face_oracle server]: Using redis host {args.redis_host} at port {args.redis_port}")
+print(f"[face_oracle server]: Using neo4j at {os.environ['NEO4J_ADDRESS']}")
 
 class FaceOracle:
     def __init__(self):
@@ -91,6 +94,7 @@ class FaceOracle:
                 confidences.append(1.0)
                 node_ids.append(-1)
         await websocket.send(pickle.dumps((names, confidences, node_ids), protocol=2))
+        print(f"[face_oracle server]: Answered face query: {(names, confidences, node_ids)}")
 
 if __name__ == '__main__':
     global sess

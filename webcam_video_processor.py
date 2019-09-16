@@ -48,6 +48,10 @@ argdef.add_argument(
     help="Network Interface on which camera HTTP stream is served.")
 args = argdef.parse_args()
 
+print "[face_oracle client]: Startup"
+print "[face_oracle client]: Using video from", args.source
+print "[face_oracle client]: Using server at", args.query_endpoint
+print "[face_oracle client]: Serving UI at", args.ui_address
 
 # import ros_numpy
 def increase_brightness(img, value=30):
@@ -89,13 +93,16 @@ def frame_callback(frame):
         if len(face_encodings) > 0:
             pickled_encodings = pickle.dumps((face_encodings, bytes(), "abc"), protocol=2)
             try:
+                print '[face_oracle client]: Websocket query ...', e
                 ws = websocket.create_connection(args.query_endpoint)
                 ws.send_binary(pickled_encodings)
                 pickled_results = ws.recv()
                 ws.close()
-                face_names, face_confidences, face_node_ids = pickle.loads(pickled_results)
+                unpacked_result = pickle.loads(pickled_results)
+                print '[face_oracle client]:   ... got', unpacked_result
+                face_names, face_confidences, face_node_ids = unpacked_result
             except Exception, e:
-                print('Error: '+ str(e))
+                print '[face_oracle client]: ERROR during websocket query:', e
             msg = Faces()
             msg.names = face_names
             msg.confidence = face_confidences
@@ -148,7 +155,7 @@ class CamHandler(BaseHTTPRequestHandler):
         global marked_frame
         if self.path.endswith('.mjpg'):
             try:
-                print("sending")
+                print "[face_oracle client]: HTTP response"
                 self.send_response(200)
                 self.send_header('Content-type','multipart/x-mixed-replace; boundary=--jpgboundary')
                 self.end_headers()
@@ -196,7 +203,6 @@ rospy.init_node('face_encodings_extractor')
 publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings', RecognizeFaces)
 face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinates', Point, queue_size=1)
 names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', Faces, queue_size=1)
-print "source", args.source
 video_capture = cv2.VideoCapture(args.source)
 
 def signal_handler(sig, frame):
@@ -209,9 +215,8 @@ signal.signal(signal.SIGINT, signal_handler)
 
 try:
     ip, port = args.ui_address.split(":")
-    print "serving on", ip, port
     server = ThreadedHTTPServer((ip, int(port)), CamHandler)
-    print "server started"
+    print "[face_oracle client]: Server started!"
     server.serve_forever()
 except KeyboardInterrupt:
     video_capture.release()
