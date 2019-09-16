@@ -93,7 +93,7 @@ def frame_callback(frame):
         if len(face_encodings) > 0:
             pickled_encodings = pickle.dumps((face_encodings, bytes(), "abc"), protocol=2)
             try:
-                print '[face_oracle client]: Websocket query ...', e
+                print '[face_oracle client]: Websocket query ...'
                 ws = websocket.create_connection(args.query_endpoint)
                 ws.send_binary(pickled_encodings)
                 pickled_results = ws.recv()
