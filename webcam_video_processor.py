@@ -19,6 +19,7 @@ import pdb
 import signal
 import sys
 import argparse
+import traceback
 
 import cv2
 from PIL import Image
@@ -67,6 +68,7 @@ def increase_brightness(img, value=30):
     return img
 
 def frame_callback(frame):
+
     frame = increase_brightness(frame, 20)
     face_locations = []
     face_encodings = []
@@ -183,8 +185,8 @@ class CamHandler(BaseHTTPRequestHandler):
                         time.sleep(0.01)
                     except KeyboardInterrupt:
                         break
-            except:
-                pass            
+            except Exception as e:
+                traceback.print_exc()
             return
         if self.path.endswith('.html'):
             self.send_response(200)
@@ -208,6 +210,10 @@ rospy.init_node('face_encodings_extractor')
 publish_names_srv = rospy.ServiceProxy('/roboy/cognition/vision/face_encodings', RecognizeFaces)
 face_position_publisher = rospy.Publisher('roboy/cognition/vision/face_coordinates', Point, queue_size=1)
 names_pub = rospy.Publisher('/roboy/cognition/vision/visible_face_names', Faces, queue_size=1)
+try:
+    args.source = int(args.source)
+except:
+    pass
 video_capture = cv2.VideoCapture(args.source)
 
 def signal_handler(sig, frame):
