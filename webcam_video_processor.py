@@ -172,9 +172,9 @@ class CamHandler(BaseHTTPRequestHandler):
                         ret, frame = video_capture.read()
                         frame_counter += 1
                         # If the last frame is reached, reset the capture and the frame_counter
-                        if frame_counter == video_capture.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT):
+                        if frame_counter == video_capture.get(cv2.CAP_PROP_FRAME_COUNT):
                             frame_counter = 0
-                            video_capture.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, 0)
+                            video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
                         frame_callback(frame)
                         if marked_frame is None:
                             continue
@@ -187,7 +187,7 @@ class CamHandler(BaseHTTPRequestHandler):
                         self.send_header('Content-length',str(tmpFile.len))
                         self.end_headers()
                         jpg.save(self.wfile,'JPEG')
-                        time.sleep(0.01)
+                        time.sleep(0.001)
                     except KeyboardInterrupt:
                         break
             except Exception as e:
@@ -197,7 +197,7 @@ class CamHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type','text/html')
             self.end_headers()
-            self.wfile.write('<html><head></head><body>')
+            self.wfile.write('<html><head></head><body style="background-color:black">')
             self.wfile.write('<img src="http://'+args.ui_address+'/cam.mjpg"/>')
             self.wfile.write('</body></html>')
             return
