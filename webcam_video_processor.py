@@ -166,11 +166,16 @@ class CamHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type','multipart/x-mixed-replace; boundary=--jpgboundary')
                 self.end_headers()
+                frame_counter = 0
                 while not rospy.is_shutdown():
                     try:
                         ret, frame = video_capture.read()
+                        frame_counter += 1
+                        # If the last frame is reached, reset the capture and the frame_counter
+                        if frame_counter == video_capture.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT):
+                            frame_counter = 0
+                            video_capture.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, 0)
                         frame_callback(frame)
-                        # rc,img = capture.read()
                         if marked_frame is None:
                             continue
                         imgRGB=cv2.cvtColor(marked_frame,cv2.COLOR_BGR2RGB)
